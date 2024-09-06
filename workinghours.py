@@ -46,8 +46,10 @@ try:
     #username = input("Enter your username: ")
     #password = getpass.getpass("Enter your password: ")
     submission_day = input("Enter the day of the month you want to submit the data for (e.g., 20 for June 20th. leave empty for today): ")
-    start_time = input("Enter start time:")
-    end_time = input("Enter end time:")
+    start_time = input("Enter start time (leave empty for default 9:00): ")
+    start_time = start_time if start_time else "9:00"
+    end_time = input("Enter end time (leave empty for default 17:30): ")
+    end_time = end_time if end_time else "17:30"
     # Prompt the user for the lunch time and the day of the month they want to submit the data for
     lunch_time = "1:00"
     notes = input("Enter Note if needed:")
@@ -62,7 +64,7 @@ try:
     login_button.click()
 
     # Wait for the login process to complete (you might need to adjust the time based on the actual loading time)
-    driver.implicitly_wait(2)
+    driver.implicitly_wait(5)
 
     working_hour_tab = driver.find_element("xpath", f"/html/body/form/div[3]/div[5]/div/div/ul/li[6]/a")
     working_hour_tab.click()
