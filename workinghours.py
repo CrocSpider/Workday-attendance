@@ -68,7 +68,7 @@ try:
 
     working_hour_tab = driver.find_element("xpath", f"/html/body/form/div[3]/div[5]/div/div/ul/li[6]/a")
     working_hour_tab.click()
-
+    today_date = datetime
     # If the user did not input anything, use today's date
     if not submission_day:
         current_day = datetime.now().day
@@ -107,7 +107,7 @@ try:
     time.sleep(3)
 
     # Take a screenshot after inputting the lunch time
-    take_screenshot(driver, 'after_input.png')
+    take_screenshot(driver, f'after_input-{today_date}.png')
 
 
 finally:
