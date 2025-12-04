@@ -3,3 +3,6 @@
 .env
 
 *.html
+
+# Virtual environment
+venv/

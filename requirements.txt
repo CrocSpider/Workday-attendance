@@ -1,3 +1,4 @@
 selenium
 chromedriver-autoinstaller
-pywin32
+playwright
+keyring

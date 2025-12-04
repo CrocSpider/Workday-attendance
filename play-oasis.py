@@ -1,11 +1,35 @@
 from playwright.sync_api import sync_playwright
-import win32cred
 from datetime import datetime
 import time
+import platform
+import keyring
+import getpass
+
 def get_credentials(target_name):
+    """
+    Cross-platform credential retrieval using keyring library.
+    Falls back to manual input if credentials not found.
+    """
     try:
-        creds = win32cred.CredRead(target_name, win32cred.CRED_TYPE_GENERIC)
-        return creds['UserName'], creds['CredentialBlob'].decode('utf-16')
+        # Try to get username from keyring
+        username = keyring.get_password(target_name, "username")
+        password = keyring.get_password(target_name, "password")
+        
+        if username and password:
+            return username, password
+        else:
+            print(f"No stored credentials found for '{target_name}'.")
+            username = input("Enter username: ")
+            password = getpass.getpass("Enter password: ")
+            
+            # Optionally save for future use
+            save = input("Save credentials? (y/n): ").lower()
+            if save == 'y':
+                keyring.set_password(target_name, "username", username)
+                keyring.set_password(target_name, "password", password)
+                print("Credentials saved securely.")
+            
+            return username, password
     except Exception as e:
         print(f"Failed to retrieve credentials: {e}")
         return None, None
@@ -46,7 +70,7 @@ def main():
         browser = p.chromium.launch(headless=True,
                                     args=["--disable-blink-features=AutomationControlled"])
         # Block images for speed
-        context = browser.new_context()
+        context = browser.new_context(ignore_https_errors=True)
         context.route("**/*", lambda route, request: 
             route.abort() if request.resource_type == "image" else route.continue_())
 
