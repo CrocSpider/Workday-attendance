@@ -22,7 +22,7 @@ options = webdriver.ChromeOptions()
 options.add_argument('--headless')  # Run in headless mode
 options.add_argument('--disable-gpu')  # Disable GPU
 options.add_argument('--window-size=1920x1080')  # Set window size
-options.add_argument('--log-level=1')  # Set log level to 1
+options.add_argument('--log-level=0')  # Set log level to 1
 options.add_argument('--no-sandbox')  # Bypass OS security model
 options.add_argument('--disable-dev-shm-usage')  # Overcome limited resource problems
 # Set up the WebDriver (assuming you have Chrome and ChromeDriver installed)
