@@ -1,9 +1,11 @@
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 from datetime import datetime
 import time
-import platform
 import keyring
 import getpass
+
+WORKING_HOURS_TAB = "xpath=/html/body/form/div[3]/div[5]/div/div/ul/li[6]/a"
+NEXT_BUTTON = "xpath=/html/body/form/div[3]/div[2]/div[1]/table/tbody/tr[3]/td[2]/input[2]"
 
 def get_credentials(target_name):
     """
@@ -34,6 +36,26 @@ def get_credentials(target_name):
         print(f"Failed to retrieve credentials: {e}")
         return None, None
 
+def login(page, url, username, password):
+    page.goto(url, timeout=60000)
+    page.fill("#txtLoginID", username)
+    page.fill("#txtPassword", password)
+    page.click("#btnLogin")
+
+    try:
+        page.locator(WORKING_HOURS_TAB).wait_for(timeout=20000)
+    except PlaywrightTimeoutError as e:
+        if page.locator("text=Login error").count():
+            raise RuntimeError(
+                "OASIS login failed. The site returned 'Login error (AD)'. "
+                "Check the credentials stored in your keyring for service 'oasis'."
+            ) from e
+
+        raise RuntimeError(
+            "OASIS login did not reach the Working Hours page. "
+            "The page layout may have changed."
+        ) from e
+
 def main():
     url = "https://oasis.springernature.com/oasis3/login.aspx"
     target_name = 'oasis'
@@ -57,15 +79,6 @@ def main():
         except Exception:
             raise ValueError("Invalid day number.")
 
-    submission_day = int(submission_day) if submission_day else datetime.now().day
-    today = datetime.now()
-    target_date = today.replace(day=submission_day)
-
-    # Compose the date string found by codegen:
-    row_label = target_date.strftime('/%m/%d %a')
-    # e.g., "/06/22 Sat"
-
-    
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True,
                                     args=["--disable-blink-features=AutomationControlled"])
@@ -75,29 +88,17 @@ def main():
             route.abort() if request.resource_type == "image" else route.continue_())
 
         page = context.new_page()
-        page.goto(url, timeout=60000)
-
-        # Login section
-        page.fill("#txtLoginID", username)
-        page.fill("#txtPassword", password)
-        page.click("#btnLogin")
+        login(page, url, username, password)
 
         # Wait for and click "Working Hours" tab
-        #page.wait_for_selector("xpath=/html/body/form/div[3]/div[5]/div/div/ul/li[6]/a", timeout=20000)
-        #page.click("xpath=/html/body/form/div[3]/div[5]/div/div/ul/li[6]/a")
-        page.get_by_role("link", name="Working Hours Report").click()
+        page.click(WORKING_HOURS_TAB)
         # Click "Next"
-        #page.wait_for_selector("xpath=/html/body/form/div[3]/div[2]/div[1]/table/tbody/tr[3]/td[2]/input[2]", timeout=10000)
-        #page.click("xpath=/html/body/form/div[3]/div[2]/div[1]/table/tbody/tr[3]/td[2]/input[2]")
-        page.get_by_role("button", name="Next").click()
+        page.click(NEXT_BUTTON)
         # Row for current day
         row = f"/html/body/form/div[4]/div[1]/div/table/tbody/tr[{current_day}]"
 
         # Click edit
-        #page.wait_for_selector(f"xpath={row}/td[17]/div/a", timeout=10000)
-        #page.click(f"xpath={row}/td[17]/div/a")
-        # Click the "Edit" link in that row (partial match!)
-        page.get_by_role("row", name=row_label, exact=False).get_by_role("link", name="Edit").click()
+        page.click(f"xpath={row}/td[17]/div/a")
         # Fill fields
         page.fill(f"xpath={row}/td[5]/div/input", start_time)
         page.fill(f"xpath={row}/td[6]/div/input", end_time)
@@ -105,8 +106,7 @@ def main():
         page.fill(f"xpath={row}/td[16]/div/input", notes)
 
         # Submit
-        page.get_by_role("link", name="Update").click()
-        #time.sleep(2)
+        page.click(f"xpath={row}/td[17]/div/a[1]")
         page.screenshot(path=f'after_input-{datetime.now().strftime("%Y%m%d_%H%M%S")}.png', full_page=True)
 
         print("✔ Done! Working hours submitted.")
