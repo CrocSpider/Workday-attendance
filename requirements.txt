@@ -1,4 +1,4 @@
 selenium
 chromedriver-autoinstaller
-playwright
+playwright==1.65.2
 keyring
